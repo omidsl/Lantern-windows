@@ -1,0 +1,44 @@
+name: Build Lantern Windows 3D
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter for Windows
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.22.3'
+          channel: 'stable'
+
+      - name: Generate Windows Runner & Compile EXE
+        shell: powershell
+        run: |
+          Copy-Item pubspec.yaml pubspec.yaml.bak
+          Copy-Item lib/main.dart main.dart.bak
+          flutter config --enable-windows-desktop
+          flutter create --platforms=windows --project-name lantern_windows .
+          Move-Item -Force pubspec.yaml.bak pubspec.yaml
+          Move-Item -Force main.dart.bak lib/main.dart
+          flutter pub get
+          flutter build windows --release --no-tree-shake-icons
+
+      - name: Download & Bundle Official Xray-Core Engine
+        shell: powershell
+        run: |
+          $releaseDir = "build/windows/x64/runner/Release"
+          Invoke-WebRequest -Uri "https://github.com/XTLS/Xray-core/releases/latest/download/Xray-windows-64.zip" -OutFile "xray.zip"
+          Expand-Archive -Path "xray.zip" -DestinationPath "$releaseDir" -Force
+
+      - name: Upload Windows Portable App
+        uses: actions/upload-artifact@v4
+        with:
+          name: Lantern-Windows-3D-Portable
+          path: build/windows/x64/runner/Release/*
