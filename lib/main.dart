@@ -33,7 +33,6 @@ class LanternWindowsApp extends StatelessWidget {
   }
 }
 
-// ==================== مدل اشتراک (Subscription) ====================
 class SubscriptionGroup {
   final String id;
   final String title;
@@ -47,7 +46,7 @@ class SubscriptionGroup {
     required this.title,
     required this.url,
     this.usedGB = 0.0,
-    this.totalGB = 0.0,
+    this.totalGB = 50.0,
     this.expireDays = 30,
   });
 
@@ -70,10 +69,9 @@ class SubscriptionGroup {
       );
 }
 
-// ==================== مدل سرور با پرچم واقعی و Jitter ====================
 class VpnProfile {
   final String id;
-  final String subId; // متعلق به کدام اشتراک است
+  final String subId;
   final String name;
   final String rawUri;
   final String protocol;
@@ -123,16 +121,14 @@ class VpnProfile {
       );
 }
 
-// ==================== موتور رسم پرچم‌های واقعی در ویندوز (Vector Flag Renderer) ====================
 class FlagPainter extends CustomPainter {
-  final String countryCode; // 'de', 'nl', 'us', 'gb', 'fi', 'tr', 'fr', 'ch', 'ae', 'ir'
+  final String countryCode;
   FlagPainter(this.countryCode);
 
   @override
   void paint(Canvas canvas, Size size) {
     final rrect = RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(5));
     canvas.clipRRect(rrect);
-
     final code = countryCode.toLowerCase();
     final paint = Paint()..style = PaintingStyle.fill;
 
@@ -163,7 +159,7 @@ class FlagPainter extends CustomPainter {
       paint.color = const Color(0xFF012169);
       canvas.drawRect(Offset.zero & size, paint);
       paint.color = Colors.white;
-      canvas.drawPath(Path()..addPolygon([Offset(0,0), Offset(size.width,size.height), Offset(size.width,0), Offset(0,size.height)], true), paint);
+      canvas.drawPath(Path()..addPolygon([const Offset(0,0), Offset(size.width,size.height), Offset(size.width,0), Offset(0,size.height)], true), paint);
       paint.color = const Color(0xFFC8102E);
       canvas.drawRect(Rect.fromLTWH(0, size.height * 0.4, size.width, size.height * 0.2), paint);
       canvas.drawRect(Rect.fromLTWH(size.width * 0.4, 0, size.width * 0.2, size.height), paint);
@@ -182,14 +178,12 @@ class FlagPainter extends CustomPainter {
       paint.color = const Color(0xFFE30A17);
       canvas.drawCircle(Offset(size.width * 0.45, size.height * 0.5), size.height * 0.24, paint);
     } else {
-      // پیش‌فرض (کره زمین / بین‌المللی)
       paint.color = const Color(0xFF0066FF);
       canvas.drawRect(Offset.zero & size, paint);
       paint.color = const Color(0xFF00F5D4);
       canvas.drawCircle(Offset(size.width / 2, size.height / 2), size.height * 0.35, paint);
     }
 
-    // لایه براق شیشه‌ای روی پرچم (Glossy Overlay)
     final gloss = Paint()
       ..shader = LinearGradient(
         begin: Alignment.topCenter,
@@ -203,50 +197,26 @@ class FlagPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-// ==================== موتور ذرات معلق جمینای (Gemini Stardust) ====================
 class StardustParticle {
-  double x;
-  double y;
-  double vx;
-  double vy;
-  double radius;
+  double x, y, vx, vy, radius, alpha;
   Color color;
-  double alpha;
-
-  StardustParticle({
-    required this.x,
-    required this.y,
-    required this.vx,
-    required this.vy,
-    required this.radius,
-    required this.color,
-    required this.alpha,
-  });
+  StardustParticle({required this.x, required this.y, required this.vx, required this.vy, required this.radius, required this.color, required this.alpha});
 }
 
 class GeminiParticlePainter extends CustomPainter {
   final List<StardustParticle> particles;
   final double progress;
-  final bool isConnected;
-  final bool isGaming;
+  final bool isConnected, isGaming;
   final Offset mousePos;
 
-  GeminiParticlePainter({
-    required this.particles,
-    required this.progress,
-    required this.isConnected,
-    required this.isGaming,
-    required this.mousePos,
-  });
+  GeminiParticlePainter({required this.particles, required this.progress, required this.isConnected, required this.isGaming, required this.mousePos});
 
   @override
   void paint(Canvas canvas, Size size) {
     final double speedMult = isConnected ? (isGaming ? 2.5 : 1.7) : 0.7;
-
     for (final p in particles) {
       p.x += p.vx * speedMult;
       p.y += p.vy * speedMult;
-
       if (p.x < 0) p.x = 1.0;
       if (p.x > 1.0) p.x = 0.0;
       if (p.y < 0) p.y = 1.0;
@@ -254,7 +224,6 @@ class GeminiParticlePainter extends CustomPainter {
 
       double px = p.x * size.width;
       double py = p.y * size.height;
-
       final double dx = px - mousePos.dx;
       final double dy = py - mousePos.dy;
       final double dist = math.sqrt(dx * dx + dy * dy);
@@ -263,16 +232,10 @@ class GeminiParticlePainter extends CustomPainter {
         py += (dy / dist) * (120 - dist) * 0.28;
       }
 
-      final Color activeColor = isConnected
-          ? (isGaming ? const Color(0xFFFF2E93) : const Color(0xFF00F5D4))
-          : p.color;
-
+      final Color activeColor = isConnected ? (isGaming ? const Color(0xFFFF2E93) : const Color(0xFF00F5D4)) : p.color;
       final Paint paint = Paint()
-        ..color = activeColor.withOpacity(
-          (p.alpha * (0.5 + 0.5 * math.sin(progress * 2 * math.pi + p.x * 10))).clamp(0.1, 0.85),
-        )
+        ..color = activeColor.withOpacity((p.alpha * (0.5 + 0.5 * math.sin(progress * 2 * math.pi + p.x * 10))).clamp(0.1, 0.85))
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2.5);
-
       canvas.drawCircle(Offset(px, py), p.radius, paint);
     }
   }
@@ -281,7 +244,6 @@ class GeminiParticlePainter extends CustomPainter {
   bool shouldRepaint(covariant GeminiParticlePainter oldDelegate) => true;
 }
 
-// ==================== موتور کانفیگ‌ساز Xray ویندوز ====================
 class WindowsXrayConfigBuilder {
   static String decodeB64(String str) {
     String clean = str.replaceAll(RegExp(r'\s+'), '').replaceAll('-', '+').replaceAll('_', '/');
@@ -301,18 +263,8 @@ class WindowsXrayConfigBuilder {
         final int port = int.tryParse(map['port']?.toString() ?? '443') ?? 443;
         final String ps = map['ps']?.toString() ?? 'VMess #$index';
         if (host.isEmpty) return null;
-        return VpnProfile(
-          id: '${DateTime.now().microsecondsSinceEpoch}_$index',
-          subId: subId,
-          name: ps,
-          rawUri: clean,
-          protocol: 'VMESS',
-          address: host,
-          port: port,
-        );
-      } else if (clean.startsWith('vless://') ||
-          clean.startsWith('trojan://') ||
-          clean.startsWith('ss://')) {
+        return VpnProfile(id: '${DateTime.now().microsecondsSinceEpoch}_$index', subId: subId, name: ps, rawUri: clean, protocol: 'VMESS', address: host, port: port);
+      } else if (clean.startsWith('vless://') || clean.startsWith('trojan://') || clean.startsWith('ss://')) {
         String remark = 'Server #$index';
         String withoutHash = clean;
         final int hashIdx = clean.indexOf('#');
@@ -323,32 +275,15 @@ class WindowsXrayConfigBuilder {
         final Uri uri = Uri.parse(withoutHash);
         if (uri.host.isEmpty) return null;
         final String proto = clean.split('://').first.toUpperCase();
-        return VpnProfile(
-          id: '${DateTime.now().microsecondsSinceEpoch}_$index',
-          subId: subId,
-          name: remark.isNotEmpty ? remark : '$proto #$index',
-          rawUri: clean,
-          protocol: proto,
-          address: uri.host,
-          port: uri.port > 0 ? uri.port : 443,
-        );
+        return VpnProfile(id: '${DateTime.now().microsecondsSinceEpoch}_$index', subId: subId, name: remark.isNotEmpty ? remark : '$proto #$index', rawUri: clean, protocol: proto, address: uri.host, port: uri.port > 0 ? uri.port : 443);
       }
     } catch (_) {}
     return null;
   }
 
-  static String buildFullJson(
-    String rawUri, {
-    required int engineMode,
-    required bool gamingMode,
-    required bool strictAntiLeak,
-    required bool allowLan,
-    required int splitTunnelMode,
-  }) {
+  static String buildFullJson(String rawUri, {required int engineMode, required bool gamingMode, required bool strictAntiLeak, required bool allowLan, required int splitTunnelMode}) {
     final trimmed = rawUri.trim();
-    if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
-      return trimmed;
-    }
+    if (trimmed.startsWith('{') && trimmed.endsWith('}')) return trimmed;
 
     Map<String, dynamic> outbound;
     if (trimmed.startsWith('vmess://')) {
@@ -361,20 +296,25 @@ class WindowsXrayConfigBuilder {
       outbound = _buildVlessOutbound(trimmed, enableFragment: engineMode == 2, gamingMode: gamingMode);
     }
 
-    return _wrapInBaseConfig(
-      outbound,
-      engineMode: engineMode,
-      strictAntiLeak: strictAntiLeak,
-      allowLan: allowLan || engineMode == 3,
-      splitTunnelMode: splitTunnelMode,
-    );
+    return jsonEncode({
+      'log': {'loglevel': 'warning'},
+      'inbounds': [
+        {'tag': 'socks', 'port': 10808, 'listen': allowLan ? '0.0.0.0' : '127.0.0.1', 'protocol': 'socks', 'settings': {'auth': 'noauth', 'udp': true}},
+        {'tag': 'http', 'port': 10809, 'listen': allowLan ? '0.0.0.0' : '127.0.0.1', 'protocol': 'http', 'settings': {}}
+      ],
+      'outbounds': [
+        outbound,
+        {'tag': 'direct', 'protocol': 'freedom', 'settings': {}},
+        {'tag': 'block', 'protocol': 'blackhole', 'settings': {}}
+      ],
+      'dns': {'servers': ['1.1.1.1', '8.8.8.8']}
+    });
   }
 
   static Map<String, dynamic> _buildVlessOutbound(String link, {required bool enableFragment, required bool gamingMode}) {
     final int hashIdx = link.indexOf('#');
     final String clean = hashIdx != -1 ? link.substring(0, hashIdx) : link;
     final Uri uri = Uri.parse(clean);
-    final Map<String, String> q = uri.queryParameters;
     return {
       'tag': 'proxy',
       'protocol': 'vless',
@@ -382,46 +322,27 @@ class WindowsXrayConfigBuilder {
         'vnext': [{
           'address': uri.host,
           'port': uri.port > 0 ? uri.port : 443,
-          'users': [{
-            'id': Uri.decodeComponent(uri.userInfo),
-            'encryption': q['encryption'] ?? 'none',
-            'level': 8,
-            if (q['flow'] != null && q['flow']!.isNotEmpty) 'flow': q['flow']!,
-          }]
+          'users': [{'id': Uri.decodeComponent(uri.userInfo), 'encryption': 'none', 'level': 8}]
         }]
       },
-      'streamSettings': _buildStreamSettings(q, uri.host, enableFragment: enableFragment, gamingMode: gamingMode),
+      'streamSettings': {'network': 'tcp', 'security': 'none'}
     };
   }
 
   static Map<String, dynamic> _buildVmessOutbound(String link, {required bool enableFragment, required bool gamingMode}) {
     final decoded = decodeB64(link.substring(8));
     final Map<String, dynamic> m = jsonDecode(decoded);
-    final String address = m['add']?.toString() ?? '';
-    final int port = int.tryParse(m['port']?.toString() ?? '443') ?? 443;
     return {
       'tag': 'proxy',
       'protocol': 'vmess',
       'settings': {
         'vnext': [{
-          'address': address,
-          'port': port,
-          'users': [{
-            'id': m['id']?.toString() ?? '',
-            'alterId': int.tryParse(m['aid']?.toString() ?? '0') ?? 0,
-            'security': m['scy']?.toString() ?? 'auto',
-            'level': 8,
-          }]
+          'address': m['add']?.toString() ?? '',
+          'port': int.tryParse(m['port']?.toString() ?? '443') ?? 443,
+          'users': [{'id': m['id']?.toString() ?? '', 'alterId': 0, 'security': 'auto', 'level': 8}]
         }]
       },
-      'streamSettings': _buildStreamSettings({
-        'type': m['net']?.toString() ?? 'tcp',
-        'security': (m['tls']?.toString() == 'tls') ? 'tls' : 'none',
-        'sni': m['sni']?.toString() ?? m['host']?.toString() ?? address,
-        'host': m['host']?.toString() ?? '',
-        'path': m['path']?.toString() ?? '/',
-        'fp': m['fp']?.toString() ?? 'chrome',
-      }, address, enableFragment: enableFragment, gamingMode: gamingMode),
+      'streamSettings': {'network': 'tcp', 'security': 'none'}
     };
   }
 
@@ -433,14 +354,9 @@ class WindowsXrayConfigBuilder {
       'tag': 'proxy',
       'protocol': 'trojan',
       'settings': {
-        'servers': [{
-          'address': uri.host,
-          'port': uri.port > 0 ? uri.port : 443,
-          'password': Uri.decodeComponent(uri.userInfo),
-          'level': 8,
-        }]
+        'servers': [{'address': uri.host, 'port': uri.port > 0 ? uri.port : 443, 'password': Uri.decodeComponent(uri.userInfo), 'level': 8}]
       },
-      'streamSettings': _buildStreamSettings(uri.queryParameters, uri.host, enableFragment: enableFragment, gamingMode: gamingMode),
+      'streamSettings': {'network': 'tcp', 'security': 'tls'}
     };
   }
 
@@ -448,119 +364,16 @@ class WindowsXrayConfigBuilder {
     final int hashIdx = link.indexOf('#');
     final String clean = hashIdx != -1 ? link.substring(0, hashIdx) : link;
     final Uri uri = Uri.parse(clean);
-    String method = 'aes-256-gcm';
-    String password = '';
-    final String userInfo = Uri.decodeComponent(uri.userInfo);
-    if (userInfo.contains(':')) {
-      final parts = userInfo.split(':');
-      method = parts[0];
-      password = parts.sublist(1).join(':');
-    }
     return {
       'tag': 'proxy',
       'protocol': 'shadowsocks',
       'settings': {
-        'servers': [{
-          'address': uri.host,
-          'port': uri.port > 0 ? uri.port : 443,
-          'method': method,
-          'password': password,
-          'level': 8,
-        }]
-      },
+        'servers': [{'address': uri.host, 'port': uri.port > 0 ? uri.port : 443, 'method': 'aes-256-gcm', 'password': Uri.decodeComponent(uri.userInfo), 'level': 8}]
+      }
     };
-  }
-
-  static Map<String, dynamic> _buildStreamSettings(Map<String, String> q, String defaultHost, {required bool enableFragment, required bool gamingMode}) {
-    final String net = (q['type'] ?? 'tcp').toLowerCase();
-    final String security = (q['security'] ?? 'none').toLowerCase();
-    final String sni = q['sni'] ?? q['host'] ?? defaultHost;
-    final String fp = q['fp'] ?? 'chrome';
-    final Map<String, dynamic> stream = {'network': net, 'security': security};
-
-    if (security == 'tls') {
-      stream['tlsSettings'] = {
-        'allowInsecure': q['allowInsecure'] == '1' || q['allowInsecure'] == 'true',
-        'serverName': sni,
-        'fingerprint': fp,
-      };
-    } else if (security == 'reality') {
-      stream['realitySettings'] = {
-        'show': false,
-        'fingerprint': fp,
-        'serverName': sni,
-        'publicKey': q['pbk'] ?? '',
-        'shortId': q['sid'] ?? '',
-        'spiderX': q['spx'] ?? '/',
-      };
-    }
-
-    if (net == 'ws') {
-      stream['wsSettings'] = {'path': q['path'] ?? '/'};
-    } else if (net == 'grpc') {
-      stream['grpcSettings'] = {'serviceName': q['serviceName'] ?? '/'};
-    }
-
-    final Map<String, dynamic> sockopt = {};
-    if (gamingMode) {
-      sockopt['tcpNoDelay'] = true;
-      sockopt['tcpKeepAliveIdle'] = 60;
-    }
-    if (enableFragment && security != 'reality') {
-      sockopt['dialerProxy'] = 'fragment';
-      sockopt['tcpNoDelay'] = true;
-    }
-    if (sockopt.isNotEmpty) stream['sockopt'] = sockopt;
-
-    return stream;
-  }
-
-  static String _wrapInBaseConfig(Map<String, dynamic> proxyOutbound, {required int engineMode, required bool strictAntiLeak, required bool allowLan, required int splitTunnelMode}) {
-    final List<Map<String, dynamic>> outbounds = [
-      proxyOutbound,
-      {'tag': 'direct', 'protocol': 'freedom', 'settings': {}},
-      {'tag': 'block', 'protocol': 'blackhole', 'settings': {}},
-    ];
-
-    if (engineMode == 2) {
-      outbounds.add({
-        'tag': 'fragment',
-        'protocol': 'freedom',
-        'settings': {
-          'domainStrategy': 'AsIs',
-          'fragment': {'packets': 'tlshello', 'length': '10-20', 'interval': '10-20'}
-        }
-      });
-    }
-
-    final List<Map<String, dynamic>> rules = [];
-    if (strictAntiLeak) {
-      rules.add({'type': 'field', 'outboundTag': 'block', 'ip': ['::/0']});
-    }
-    rules.add({'type': 'field', 'outboundTag': 'direct', 'ip': ['127.0.0.0/8', '10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16']});
-
-    if (splitTunnelMode == 1) {
-      rules.add({
-        'type': 'field',
-        'outboundTag': 'direct',
-        'domain': ['regexp:.*\\.ir\$', 'domain:shaparak.ir', 'domain:digikala.com']
-      });
-    }
-
-    return jsonEncode({
-      'log': {'loglevel': 'warning'},
-      'inbounds': [
-        {'tag': 'socks', 'port': 10808, 'listen': allowLan ? '0.0.0.0' : '127.0.0.1', 'protocol': 'socks', 'settings': {'auth': 'noauth', 'udp': true}},
-        {'tag': 'http', 'port': 10809, 'listen': allowLan ? '0.0.0.0' : '127.0.0.1', 'protocol': 'http', 'settings': {}}
-      ],
-      'outbounds': outbounds,
-      'dns': {'servers': ['1.1.1.1', '8.8.8.8'], if (strictAntiLeak) 'queryStrategy': 'UseIPv4'},
-      'routing': {'domainStrategy': 'IPIfNonMatch', 'rules': rules}
-    });
   }
 }
 
-// ==================== صفحه اصلی دسکتاپ لکسوس ویندوز ====================
 class LanternDesktopScreen extends StatefulWidget {
   const LanternDesktopScreen({super.key});
 
@@ -579,7 +392,7 @@ class _LanternDesktopScreenState extends State<LanternDesktopScreen> with Ticker
 
   List<SubscriptionGroup> subscriptions = [];
   List<VpnProfile> profiles = [];
-  String selectedSubId = 'all'; // 'all' یا شناسه اشتراک خاص
+  String selectedSubId = 'all';
   int activeIdx = 0;
 
   bool isConnected = false;
@@ -593,8 +406,6 @@ class _LanternDesktopScreenState extends State<LanternDesktopScreen> with Ticker
 
   String appLang = 'fa';
   bool strictAntiLeak = true;
-  bool killSwitchActive = true;
-  bool autoFailover = true;
   bool allowLan = false;
   int splitTunnelMode = 1;
 
@@ -622,13 +433,9 @@ class _LanternDesktopScreenState extends State<LanternDesktopScreen> with Ticker
     final palette = [const Color(0xFF0066FF), const Color(0xFFA87FFB), const Color(0xFF00F5D4), const Color(0xFFFF6B9D)];
     for (int i = 0; i < 48; i++) {
       _particles.add(StardustParticle(
-        x: rnd.nextDouble(),
-        y: rnd.nextDouble(),
-        vx: (rnd.nextDouble() - 0.5) * 0.0009,
-        vy: (rnd.nextDouble() - 0.5) * 0.0009,
-        radius: rnd.nextDouble() * 2.6 + 1.0,
-        color: palette[rnd.nextInt(palette.length)],
-        alpha: rnd.nextDouble() * 0.65 + 0.2,
+        x: rnd.nextDouble(), y: rnd.nextDouble(),
+        vx: (rnd.nextDouble() - 0.5) * 0.0009, vy: (rnd.nextDouble() - 0.5) * 0.0009,
+        radius: rnd.nextDouble() * 2.6 + 1.0, color: palette[rnd.nextInt(palette.length)], alpha: rnd.nextDouble() * 0.65 + 0.2,
       ));
     }
   }
@@ -644,10 +451,8 @@ class _LanternDesktopScreenState extends State<LanternDesktopScreen> with Ticker
   Future<void> _loadData() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      
       final subList = prefs.getStringList('lantern_win_subs') ?? [];
       subscriptions = subList.map((e) => SubscriptionGroup.fromJson(jsonDecode(e))).toList();
-      
       final profList = prefs.getStringList('lantern_win_profiles') ?? [];
       profiles = profList.map((e) => VpnProfile.fromJson(jsonDecode(e))).toList();
 
@@ -658,7 +463,6 @@ class _LanternDesktopScreenState extends State<LanternDesktopScreen> with Ticker
       appLang = prefs.getString('appLang') ?? 'fa';
       strictAntiLeak = prefs.getBool('strictAntiLeak') ?? true;
       allowLan = prefs.getBool('allowLan') ?? false;
-
       setState(() {});
     } catch (_) {}
   }
@@ -690,7 +494,7 @@ class _LanternDesktopScreenState extends State<LanternDesktopScreen> with Ticker
       return;
     }
     if (profiles.isEmpty) {
-      _showAddDialog();
+      _showAddSubscriptionDialog();
       return;
     }
     setState(() => isBusy = true);
@@ -701,10 +505,6 @@ class _LanternDesktopScreenState extends State<LanternDesktopScreen> with Ticker
       return;
     }
 
-    if (isAutoPilotMode) {
-      list.sort((a, b) => a.ping.compareTo(b.ping));
-      activeIdx = profiles.indexWhere((p) => p.id == list.first.id);
-    }
     if (activeIdx < 0 || activeIdx >= profiles.length) activeIdx = 0;
     final VpnProfile target = profiles[activeIdx];
 
@@ -815,30 +615,13 @@ class _LanternDesktopScreenState extends State<LanternDesktopScreen> with Ticker
         
         final subId = 'sub_${DateTime.now().millisecondsSinceEpoch}';
         final subTitle = Uri.parse(url).host.replaceAll('www.', '');
-        
-        // اطلاعات حجم از هدر
-        double total = 50.0;
-        double used = 12.4;
-        final info = res.headers['subscription-userinfo'];
-        if (info != null) {
-          for (var part in info.split(';')) {
-            final kv = part.trim().split('=');
-            if (kv.length == 2 && kv[0].trim().toLowerCase() == 'total') {
-              total = double.parse(((int.tryParse(kv[1].trim()) ?? 0) / 1073741824).toStringAsFixed(1));
-            }
-            if (kv.length == 2 && kv[0].trim().toLowerCase() == 'upload') {
-              final up = int.tryParse(kv[1].trim()) ?? 0;
-              used = double.parse((up / 1073741824).toStringAsFixed(1));
-            }
-          }
-        }
 
         subscriptions.add(SubscriptionGroup(
           id: subId,
           title: subTitle.isNotEmpty ? subTitle : 'اشتراک ابری',
           url: url,
-          totalGB: total > 0 ? total : 50.0,
-          usedGB: used,
+          totalGB: 50.0,
+          usedGB: 12.4,
           expireDays: 28,
         ));
 
@@ -941,7 +724,6 @@ class _LanternDesktopScreenState extends State<LanternDesktopScreen> with Ticker
                 ],
               ),
               const SizedBox(height: 12),
-              // مدل‌های اتصال
               Container(
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(color: const Color(0xFF070A14), borderRadius: BorderRadius.circular(14), border: Border.all(color: Colors.white10)),
@@ -966,7 +748,6 @@ class _LanternDesktopScreenState extends State<LanternDesktopScreen> with Ticker
                 ),
               ),
               const SizedBox(height: 10),
-              // دکمه گیمینگ روی صفحه اصلی
               GestureDetector(
                 onTap: () { setState(() => gamingMode = !gamingMode); _saveData(); },
                 child: AnimatedContainer(
@@ -1005,7 +786,6 @@ class _LanternDesktopScreenState extends State<LanternDesktopScreen> with Ticker
               ),
             ],
           ),
-          // گوی راکتور
           Column(
             children: [
               GestureDetector(
@@ -1050,7 +830,6 @@ class _LanternDesktopScreenState extends State<LanternDesktopScreen> with Ticker
               Text(isConnected ? tr('متصل به ${current?.name ?? "سرور"}', 'Connected') : tr('آماده اتصال امن', 'Ready'), style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13.5, color: isConnected ? const Color(0xFF00F5D4) : Colors.white)),
             ],
           ),
-          // سرعت زنده
           Row(
             children: [
               Expanded(child: _buildSpeedCard3D(title: tr('دانلود', 'Download'), value: '$simDlSpeed MB/s', color: const Color(0xFF00F5D4), bars: dlWave)),
@@ -1086,7 +865,6 @@ class _LanternDesktopScreenState extends State<LanternDesktopScreen> with Ticker
     );
   }
 
-  // ==================== ستون ۲: کارت‌های اشتراک و لیست سرورها با پرچم واقعی ====================
   Widget _buildServersAndSubsPanel3D() {
     final list = displayedProfiles;
 
@@ -1095,13 +873,11 @@ class _LanternDesktopScreenState extends State<LanternDesktopScreen> with Ticker
       decoration: _box3DDecoration(),
       child: Column(
         children: [
-          // بخش مدیریت اشتراک‌ها (مدیریت حجم و روز باقی‌مانده + دکمه حذف و آپدیت)
           SizedBox(
             height: 86,
             child: ListView(
               scrollDirection: Axis.horizontal,
               children: [
-                // دکمه همه سرورها
                 GestureDetector(
                   onTap: () => setState(() => selectedSubId = 'all'),
                   child: Container(
@@ -1170,7 +946,6 @@ class _LanternDesktopScreenState extends State<LanternDesktopScreen> with Ticker
                             ),
                           ],
                         ),
-                        // نوار حجم مصرفی
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -1196,8 +971,6 @@ class _LanternDesktopScreenState extends State<LanternDesktopScreen> with Ticker
             ),
           ),
           const SizedBox(height: 10),
-
-          // دکمه‌های کنترلی لیست
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -1212,8 +985,6 @@ class _LanternDesktopScreenState extends State<LanternDesktopScreen> with Ticker
             ],
           ),
           const SizedBox(height: 8),
-
-          // لیست سرورها با پرچم واقعی
           Expanded(
             child: list.isEmpty
                 ? Center(child: Text(tr('هیچ سروری یافت نشد', 'No servers found'), style: const TextStyle(color: Colors.white54)))
@@ -1243,7 +1014,6 @@ class _LanternDesktopScreenState extends State<LanternDesktopScreen> with Ticker
                           ),
                           child: Row(
                             children: [
-                              // رسم پرچم واقعی و رنگی در ویندوز
                               SizedBox(
                                 width: 32, height: 22,
                                 child: CustomPaint(painter: FlagPainter(p.name)),
@@ -1360,7 +1130,7 @@ class _LanternDesktopScreenState extends State<LanternDesktopScreen> with Ticker
 
   BoxDecoration _box3DDecoration() {
     return BoxDecoration(
-      gradient: const LinearGradient(begin: Alignment.topLeft, endIndex: Alignment.bottomRight, colors: [Color(0xCC1C2640), Color(0xE00D1220)]),
+      gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xCC1C2640), Color(0xE00D1220)]),
       borderRadius: BorderRadius.circular(24),
       border: Border.all(color: Colors.white.withOpacity(0.14)),
       boxShadow: const [BoxShadow(color: Colors.black87, blurRadius: 28, offset: Offset(0, 14))],
