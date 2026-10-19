@@ -1,4 +1,4 @@
-name: Build Lantern Windows 3D
+name: Build Lantern Windows Installer
 
 on:
   push:
@@ -21,7 +21,6 @@ jobs:
         shell: powershell
         run: |
           if (Test-Path "lib/.github") { Remove-Item -Recurse -Force "lib/.github" }
-          if (Test-Path "lib/build.yml") { Remove-Item -Force "lib/build.yml" }
           Copy-Item pubspec.yaml pubspec.yaml.bak
           Copy-Item lib/main.dart main.dart.bak
           flutter config --enable-windows-desktop
@@ -38,8 +37,8 @@ jobs:
           Invoke-WebRequest -Uri "https://github.com/XTLS/Xray-core/releases/latest/download/Xray-windows-64.zip" -OutFile "xray.zip"
           Expand-Archive -Path "xray.zip" -DestinationPath "$releaseDir" -Force
 
-      - name: Upload Windows Portable App
+      - name: Upload Windows Release Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Lantern-Windows-3D-Portable
+          name: Lantern-Windows-Setup-Package
           path: build/windows/x64/runner/Release/*
