@@ -138,7 +138,7 @@ class VpnProfile {
   final String address;
   final int port;
   int ping;
-  int httpDelay; // تست تاخیر واقعی HTTP
+  int httpDelay;
   int jitter;
   bool isPinging;
 
@@ -368,7 +368,6 @@ class FlagPainter extends CustomPainter {
         canvas.drawLine(Offset(size.width * 0.2, size.height / 2), Offset(size.width * 0.8, size.height / 2), linePaint);
     }
 
-    // لایه شیشه‌ای براق روی پرچم
     final gloss = Paint()
       ..shader = LinearGradient(
         begin: Alignment.topCenter,
@@ -493,7 +492,7 @@ class GeminiParticlePainter extends CustomPainter {
   bool shouldRepaint(covariant GeminiParticlePainter oldDelegate) => true;
 }
 
-// ==================== موتور کامل کانفیگ‌ساز Xray ویندوز (TLS / Reality / WS / gRPC / Fragment) ====================
+// ==================== موتور کامل کانفیگ‌ساز Xray ویندوز ====================
 class WindowsXrayConfigBuilder {
   static String decodeB64(String str) {
     String clean = str.replaceAll(RegExp(r'\s+'), '').replaceAll('-', '+').replaceAll('_', '/');
@@ -833,7 +832,7 @@ class _LanternDesktopScreenState extends State<LanternDesktopScreen> with Ticker
   bool isTestingRealDelay = false;
 
   bool isAutoPilotMode = false;
-  int engineMode = 1; // 0: TUN, 1: Proxy, 2: Fragment, 3: Socks5
+  int engineMode = 1;
   bool gamingMode = true;
 
   String appLang = 'fa';
@@ -1076,7 +1075,6 @@ class _LanternDesktopScreenState extends State<LanternDesktopScreen> with Ticker
     });
   }
 
-  // ==================== تست واقعی تاخیر کانفیگ (Real HTTP Delay) ====================
   Future<void> testRealTunnelDelay() async {
     if (isTestingRealDelay) return;
     setState(() => isTestingRealDelay = true);
@@ -1161,7 +1159,6 @@ class _LanternDesktopScreenState extends State<LanternDesktopScreen> with Ticker
     _saveData();
   }
 
-  // ==================== کلیپ‌بورد هوشمند ====================
   Future<void> smartPasteFromClipboard() async {
     final data = await Clipboard.getData(Clipboard.kTextPlain);
     final text = data?.text?.trim() ?? '';
@@ -1205,7 +1202,6 @@ class _LanternDesktopScreenState extends State<LanternDesktopScreen> with Ticker
     return added;
   }
 
-  // ==================== دریافت و بروزرسانی هوشمند اشتراک بدون تکرار ====================
   Future<void> _importSubscription(String url, {String? customTitle, String? existingSubId}) async {
     final cleanUrl = url.trim();
     if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
@@ -1224,7 +1220,6 @@ class _LanternDesktopScreenState extends State<LanternDesktopScreen> with Ticker
           } catch (_) {}
         }
 
-        // بررسی اینکه آیا این لینک قبلاً اضافه شده یا خیر (جلوگیری از ساخت کارت تکراری)
         SubscriptionGroup? existingGroup;
         if (existingSubId != null) {
           final idx = subscriptions.indexWhere((s) => s.id == existingSubId);
@@ -1244,7 +1239,6 @@ class _LanternDesktopScreenState extends State<LanternDesktopScreen> with Ticker
         double total = existingGroup?.totalGB ?? 0.0;
         int? expDays = existingGroup?.expireDays;
 
-        // ۱. خواندن حجم و انقضا از هدر استاندارد (subscription-userinfo)
         final infoHeader = res.headers['subscription-userinfo'];
         if (infoHeader != null && infoHeader.isNotEmpty) {
           int upBytes = 0;
@@ -1279,7 +1273,6 @@ class _LanternDesktopScreenState extends State<LanternDesktopScreen> with Ticker
         for (var l in lines) {
           final p = WindowsXrayConfigBuilder.parseProfile(l, targetSubId, newProfiles.length + 1);
           if (p != null) {
-            // ۲. استخراج هوشمند حجم و روز از نام کانفیگ‌های اول (Marzban / X-UI / Hiddify)
             final gm = RegExp(r'(\d+(?:\.\d+)?)\s*GB', caseSensitive: false).allMatches(p.name).toList();
             if (total == 0.0 && gm.isNotEmpty) {
               if (gm.length >= 2) {
@@ -1304,7 +1297,6 @@ class _LanternDesktopScreenState extends State<LanternDesktopScreen> with Ticker
         }
 
         setState(() {
-          // حذف سرورهای قدیمی همین اشتراک تا هرگز تکرار نشود
           profiles.removeWhere((p) => p.subId == targetSubId);
           profiles.insertAll(0, newProfiles);
 
@@ -1427,7 +1419,6 @@ class _LanternDesktopScreenState extends State<LanternDesktopScreen> with Ticker
     );
   }
 
-  // ==================== ستون اول: پنل فرماندهی و گوی سه‌بعدی ====================
   Widget _buildCommandPanel3D(NeonThemePalette pal) {
     final VpnProfile? current = (profiles.isNotEmpty && activeIdx < profiles.length) ? profiles[activeIdx] : null;
     final engineLabels = ['🛡️ TUN', '🌐 Proxy', '⚡ Fragment', '🔌 Socks5'];
@@ -1561,8 +1552,6 @@ class _LanternDesktopScreenState extends State<LanternDesktopScreen> with Ticker
               ),
             ],
           ),
-
-          // گوی هولوگرافیک اتصال
           Column(
             children: [
               GestureDetector(
@@ -1638,8 +1627,6 @@ class _LanternDesktopScreenState extends State<LanternDesktopScreen> with Ticker
               ),
             ],
           ),
-
-          // رادار ضد نشت + تست تاخیر واقعی کانفیگ + سرعت زنده
           Column(
             children: [
               Container(
@@ -1737,7 +1724,6 @@ class _LanternDesktopScreenState extends State<LanternDesktopScreen> with Ticker
     );
   }
 
-  // ==================== ستون دوم: اشتراک‌ها، کلید دستی/خودکار، جستجو و لیست سرورها ====================
   Widget _buildServersAndSubsPanel3D(NeonThemePalette pal) {
     final list = displayedProfiles;
 
@@ -1746,7 +1732,6 @@ class _LanternDesktopScreenState extends State<LanternDesktopScreen> with Ticker
       decoration: _box3DDecoration(pal),
       child: Column(
         children: [
-          // ۱. کلید سه‌بعدی تفکیک حالت «انتخاب دستی 🔒» و «خلبان خودکار 🤖»
           Container(
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
@@ -1824,8 +1809,6 @@ class _LanternDesktopScreenState extends State<LanternDesktopScreen> with Ticker
             ),
           ),
           const SizedBox(height: 10),
-
-          // ۲. نوار کارت‌های اشتراک (نمایش حجم، روز باقی‌مانده، آپدیت درجا و حذف)
           SizedBox(
             height: 84,
             child: ListView(
@@ -1960,8 +1943,6 @@ class _LanternDesktopScreenState extends State<LanternDesktopScreen> with Ticker
             ),
           ),
           const SizedBox(height: 10),
-
-          // ۳. نوار جستجوی آنی + دکمه‌های عملیاتی (مرتب‌سازی، پینگ، کلیپ‌بورد، QR، افزودن)
           Row(
             children: [
               Expanded(
@@ -2038,15 +2019,13 @@ class _LanternDesktopScreenState extends State<LanternDesktopScreen> with Ticker
             ],
           ),
           const SizedBox(height: 10),
-
-          // ۴. لیست سرورها با پرچم وکتور واقعی و دکمه نمایش QR
           Expanded(
             child: list.isEmpty
                 ? Center(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.cloud_Queue_rounded, size: 44, color: Colors.white.withOpacity(0.18)),
+                        Icon(Icons.cloud_queue_rounded, size: 44, color: Colors.white.withOpacity(0.18)),
                         const SizedBox(height: 8),
                         Text(
                           tr('لیست سرورها خالی است', 'Server list is empty'),
@@ -2211,7 +2190,6 @@ class _LanternDesktopScreenState extends State<LanternDesktopScreen> with Ticker
     );
   }
 
-  // ==================== پنجره ۳ حالته افزودن (لینک اشتراک + کلیپ‌بورد + اسکنر QR) ====================
   void _showUnifiedAddDialog({int initialTab = 0}) {
     final urlCtrl = TextEditingController();
     final nameCtrl = TextEditingController();
@@ -2247,7 +2225,6 @@ class _LanternDesktopScreenState extends State<LanternDesktopScreen> with Ticker
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // تب‌های ۳ حالته
                   Container(
                     padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
@@ -2359,7 +2336,7 @@ class _LanternDesktopScreenState extends State<LanternDesktopScreen> with Ticker
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            tr('اگر تصویر یا متن QR را کپی کرده‌اید، یا فایل QR دارید، از دکمه‌های زیر استفاده کنید:', 'Paste copied QR payload or enter image path:'),
+                            tr('اگر تصویر یا متن QR را کپی کرده‌اید، از دکمه زیر استفاده کنید:', 'Paste copied QR payload instantly:'),
                             textAlign: TextAlign.center,
                             style: const TextStyle(fontSize: 10.5, color: Colors.white54),
                           ),
@@ -2437,7 +2414,6 @@ class _LanternDesktopScreenState extends State<LanternDesktopScreen> with Ticker
     );
   }
 
-  // ==================== نمایش QR Code هر سرور برای اسکن با موبایل ====================
   void _showServerQrModal(VpnProfile p) {
     final pal = currentPalette;
     showDialog(
@@ -2482,7 +2458,6 @@ class _LanternDesktopScreenState extends State<LanternDesktopScreen> with Ticker
     );
   }
 
-  // ==================== تنظیمات پیشرفته + انتخابگر ۴ تم نوری ====================
   void _openSettingsModal() {
     showDialog(
       context: context,
@@ -2587,7 +2562,6 @@ class _LanternDesktopScreenState extends State<LanternDesktopScreen> with Ticker
     );
   }
 
-  // ==================== دکمه درخشان اختصاصی (رفع کامل مشکل دکمه آبی خالی) ====================
   Widget _buildGlowingActionBtn({
     required IconData icon,
     required String label,
