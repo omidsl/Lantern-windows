@@ -1,4 +1,4 @@
-name: Build Lantern Windows Installer
+name: Build Lantern Windows 3D Setup
 
 on:
   push:
@@ -17,10 +17,11 @@ jobs:
         with:
           channel: 'stable'
 
-      - name: Generate Windows Runner & Compile EXE
+      - name: Generate Windows Runner & Compile Release
         shell: powershell
         run: |
           if (Test-Path "lib/.github") { Remove-Item -Recurse -Force "lib/.github" }
+          if (Test-Path "lib/build.yml") { Remove-Item -Force "lib/build.yml" }
           Copy-Item pubspec.yaml pubspec.yaml.bak
           Copy-Item lib/main.dart main.dart.bak
           flutter config --enable-windows-desktop
@@ -37,8 +38,46 @@ jobs:
           Invoke-WebRequest -Uri "https://github.com/XTLS/Xray-core/releases/latest/download/Xray-windows-64.zip" -OutFile "xray.zip"
           Expand-Archive -Path "xray.zip" -DestinationPath "$releaseDir" -Force
 
-      - name: Upload Windows Release Artifacts
+      - name: Compile Windows Setup Installer (Lantern-3D-Setup.exe)
+        shell: powershell
+        run: |
+          $issContent = @"
+          [Setup]
+          AppId={{8A93F2D4-5B7E-4C91-9E2A-7F8D3C6B1A20}
+          AppName=Lantern 3D Spatial VPN
+          AppVersion=10.5.0
+          AppPublisher=Lantern Spatial Cloud
+          DefaultDirName={autopf}\Lantern3DVPN
+          DefaultGroupName=Lantern 3D VPN
+          DisableProgramGroupPage=yes
+          PrivilegesRequired=lowest
+          OutputDir=installer_out
+          OutputBaseFilename=Lantern-3D-Setup
+          Compression=lzma2
+          SolidCompression=yes
+          WizardStyle=modern
+
+          [Languages]
+          Name: "english"; MessagesFile: "compiler:Default.isl"
+
+          [Tasks]
+          Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
+
+          [Files]
+          Source: "build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+
+          [Icons]
+          Name: "{group}\Lantern 3D Spatial VPN"; Filename: "{app}\lantern_windows.exe"
+          Name: "{autodesktop}\Lantern 3D Spatial VPN"; Filename: "{app}\lantern_windows.exe"; Tasks: desktopicon
+
+          [Run]
+          Filename: "{app}\lantern_windows.exe"; Description: "{cm:LaunchProgram,Lantern 3D Spatial VPN}"; Flags: nowait postinstall skipifsilent
+          "@
+          Set-Content -Path "setup.iss" -Value $issContent -Encoding UTF8
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "setup.iss"
+
+      - name: Upload Windows Setup Installer (.EXE)
         uses: actions/upload-artifact@v4
         with:
-          name: Lantern-Windows-Setup-Package
-          path: build/windows/x64/runner/Release/*
+          name: Lantern-Windows-3D-Setup-Installer
+          path: installer_out/Lantern-3D-Setup.exe
