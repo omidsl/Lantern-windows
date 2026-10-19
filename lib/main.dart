@@ -263,7 +263,7 @@ class WindowsXrayConfigBuilder {
         final int port = int.tryParse(map['port']?.toString() ?? '443') ?? 443;
         final String ps = map['ps']?.toString() ?? 'VMess #$index';
         if (host.isEmpty) return null;
-        return VpnProfile(id: '${DateTime.now().microsecondsSinceEpoch}_$index', subId: subId, name: ps, rawUri: clean, protocol: 'VMESS', address: host, port: port);
+        return VpnProfile(id: '${subId}_${index}_${host}', subId: subId, name: ps, rawUri: clean, protocol: 'VMESS', address: host, port: port);
       } else if (clean.startsWith('vless://') || clean.startsWith('trojan://') || clean.startsWith('ss://')) {
         String remark = 'Server #$index';
         String withoutHash = clean;
@@ -275,7 +275,7 @@ class WindowsXrayConfigBuilder {
         final Uri uri = Uri.parse(withoutHash);
         if (uri.host.isEmpty) return null;
         final String proto = clean.split('://').first.toUpperCase();
-        return VpnProfile(id: '${DateTime.now().microsecondsSinceEpoch}_$index', subId: subId, name: remark.isNotEmpty ? remark : '$proto #$index', rawUri: clean, protocol: proto, address: uri.host, port: uri.port > 0 ? uri.port : 443);
+        return VpnProfile(id: '${subId}_${index}_${uri.host}', subId: subId, name: remark.isNotEmpty ? remark : '$proto #$index', rawUri: clean, protocol: proto, address: uri.host, port: uri.port > 0 ? uri.port : 443);
       }
     } catch (_) {}
     return null;
@@ -287,13 +287,13 @@ class WindowsXrayConfigBuilder {
 
     Map<String, dynamic> outbound;
     if (trimmed.startsWith('vmess://')) {
-      outbound = _buildVmessOutbound(trimmed, enableFragment: engineMode == 2, gamingMode: gamingMode);
+      outbound = _buildVmessOutbound(trimmed);
     } else if (trimmed.startsWith('trojan://')) {
-      outbound = _buildTrojanOutbound(trimmed, enableFragment: engineMode == 2, gamingMode: gamingMode);
+      outbound = _buildTrojanOutbound(trimmed);
     } else if (trimmed.startsWith('ss://')) {
-      outbound = _buildShadowsocksOutbound(trimmed, enableFragment: engineMode == 2, gamingMode: gamingMode);
+      outbound = _buildShadowsocksOutbound(trimmed);
     } else {
-      outbound = _buildVlessOutbound(trimmed, enableFragment: engineMode == 2, gamingMode: gamingMode);
+      outbound = _buildVlessOutbound(trimmed);
     }
 
     return jsonEncode({
@@ -311,7 +311,7 @@ class WindowsXrayConfigBuilder {
     });
   }
 
-  static Map<String, dynamic> _buildVlessOutbound(String link, {required bool enableFragment, required bool gamingMode}) {
+  static Map<String, dynamic> _buildVlessOutbound(String link) {
     final int hashIdx = link.indexOf('#');
     final String clean = hashIdx != -1 ? link.substring(0, hashIdx) : link;
     final Uri uri = Uri.parse(clean);
@@ -329,7 +329,7 @@ class WindowsXrayConfigBuilder {
     };
   }
 
-  static Map<String, dynamic> _buildVmessOutbound(String link, {required bool enableFragment, required bool gamingMode}) {
+  static Map<String, dynamic> _buildVmessOutbound(String link) {
     final decoded = decodeB64(link.substring(8));
     final Map<String, dynamic> m = jsonDecode(decoded);
     return {
@@ -346,7 +346,7 @@ class WindowsXrayConfigBuilder {
     };
   }
 
-  static Map<String, dynamic> _buildTrojanOutbound(String link, {required bool enableFragment, required bool gamingMode}) {
+  static Map<String, dynamic> _buildTrojanOutbound(String link) {
     final int hashIdx = link.indexOf('#');
     final String clean = hashIdx != -1 ? link.substring(0, hashIdx) : link;
     final Uri uri = Uri.parse(clean);
@@ -360,7 +360,7 @@ class WindowsXrayConfigBuilder {
     };
   }
 
-  static Map<String, dynamic> _buildShadowsocksOutbound(String link, {required bool enableFragment, required bool gamingMode}) {
+  static Map<String, dynamic> _buildShadowsocksOutbound(String link) {
     final int hashIdx = link.indexOf('#');
     final String clean = hashIdx != -1 ? link.substring(0, hashIdx) : link;
     final Uri uri = Uri.parse(clean);
@@ -599,7 +599,7 @@ class _LanternDesktopScreenState extends State<LanternDesktopScreen> with Ticker
     _saveData();
   }
 
-  Future<void> _importSubscription(String url) async {
+  Future<void> _importSubscription(String url, {String? existingSubId}) async {
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
       _notify(tr('لینک اشتراک معتبر نیست', 'Invalid subscription URL'));
       return;
@@ -613,17 +613,21 @@ class _LanternDesktopScreenState extends State<LanternDesktopScreen> with Ticker
           try { body = WindowsXrayConfigBuilder.decodeB64(body); } catch (_) {}
         }
         
-        final subId = 'sub_${DateTime.now().millisecondsSinceEpoch}';
+        final subId = existingSubId ?? 'sub_${DateTime.now().millisecondsSinceEpoch}';
         final subTitle = Uri.parse(url).host.replaceAll('www.', '');
 
-        subscriptions.add(SubscriptionGroup(
-          id: subId,
-          title: subTitle.isNotEmpty ? subTitle : 'اشتراک ابری',
-          url: url,
-          totalGB: 50.0,
-          usedGB: 12.4,
-          expireDays: 28,
-        ));
+        if (existingSubId != null) {
+          profiles.removeWhere((p) => p.subId == existingSubId);
+        } else {
+          subscriptions.add(SubscriptionGroup(
+            id: subId,
+            title: subTitle.isNotEmpty ? subTitle : 'اشتراک ابری',
+            url: url,
+            totalGB: 50.0,
+            usedGB: 12.4,
+            expireDays: 28,
+          ));
+        }
 
         final lines = body.split(RegExp(r'[\r\n]+'));
         int addedCount = 0;
@@ -636,7 +640,7 @@ class _LanternDesktopScreenState extends State<LanternDesktopScreen> with Ticker
         }
 
         _saveData();
-        _notify(tr('✦ اشتراک با $addedCount سرور اضافه شد!', '✦ Added $addedCount servers!'));
+        _notify(tr('✦ اشتراک بروزرسانی شد ($addedCount سرور)', '✦ Subscription updated ($addedCount servers)'));
         testAllPings();
       }
     } catch (_) {
@@ -927,7 +931,7 @@ class _LanternDesktopScreenState extends State<LanternDesktopScreen> with Ticker
                             Row(
                               children: [
                                 GestureDetector(
-                                  onTap: () => _importSubscription(sub.url),
+                                  onTap: () => _importSubscription(sub.url, existingSubId: sub.id),
                                   child: const Icon(Icons.sync_rounded, size: 14, color: Color(0xFF00F5D4)),
                                 ),
                                 const SizedBox(width: 6),
@@ -1071,13 +1075,17 @@ class _LanternDesktopScreenState extends State<LanternDesktopScreen> with Ticker
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: Text(tr('انصراف', 'Cancel'))),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0066FF)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0066FF),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
             onPressed: () {
               final t = ctrl.text.trim();
               Navigator.pop(ctx);
               if (t.isNotEmpty) _importSubscription(t);
             },
-            child: Text(tr('افزودن', 'Add')),
+            child: Text(tr('تأیید', 'Confirm')),
           ),
         ],
       ),
